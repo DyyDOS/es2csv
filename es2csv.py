@@ -52,7 +52,7 @@ class Es2csv:
         self.scroll_time = '30m'
 
         self.csv_headers = list(META_FIELDS) if self.opts.meta_fields else []
-        self.tmp_file = '{}.tmp'.format(opts.output_file)
+        self.tmp_file = '/home/dev/es2csv/test.json'
 
     @retry(elasticsearch.exceptions.ConnectionError, tries=TIMES_TO_TRY)
     def create_connection(self):
@@ -90,7 +90,7 @@ class Es2csv:
 
         if self.opts.doc_types:
             search_args['doc_type'] = self.opts.doc_types
-
+         
         if self.opts.query.startswith('@'):
             query_file = self.opts.query[1:]
             if os.path.exists(query_file):
@@ -125,15 +125,18 @@ class Es2csv:
 
         res = self.es_conn.search(**search_args)
         self.num_results = res['hits']['total']['value']
-
+         
         print('Found {} results.'.format(self.num_results))
+        #print(json.dumps(res, ensure_ascii=False).encode('utf8'))
+        
         if self.opts.debug_mode:
             print(json.dumps(res, ensure_ascii=False).encode('utf8'))
 
         if self.num_results > 0:
-            codecs.open(self.opts.output_file, mode='a', encoding='utf-8').close()
-            codecs.open(self.tmp_file, mode='a', encoding='utf-8').close()
-
+            #codecs.open(self.opts.output_file, mode='a', encoding='utf-8').close()
+            output_file=codecs.open(self.tmp_file, mode='a', encoding='utf-8')
+           # output_file.writelines(json.dumps(res).encode('utf8'))
+            
             hit_list = []
             total_lines = 0
 
@@ -158,82 +161,10 @@ class Es2csv:
                     total_lines += 1
                     bar.update(total_lines)
                     hit_list.append(hit)
-                    if len(hit_list) == FLUSH_BUFFER:
-                        self.flush_to_file(hit_list)
-                        hit_list = []
-                    if self.opts.max_results:
-                        if total_lines == self.opts.max_results:
-                            self.flush_to_file(hit_list)
-                            print('Hit max result limit: {} records'.format(self.opts.max_results))
-                            return
+                  
+                    hit =json.dumps(hit,ensure_ascii=False).encode('utf8')
+                    print(hit)
+                    output_file.write(hit)
+                    output_file.write("\n")
                 res = next_scroll(res['_scroll_id'])
-            self.flush_to_file(hit_list)
-            bar.finish()
-
-    def flush_to_file(self, hit_list):
-        def to_keyvalue_pairs(source, ancestors=[], header_delimeter='.'):
-            def is_list(arg):
-                return type(arg) is list
-
-            def is_dict(arg):
-                return type(arg) is dict
-
-            if is_dict(source):
-                for key in source.keys():
-                    to_keyvalue_pairs(source[key], ancestors + [key])
-
-            elif is_list(source):
-                if self.opts.kibana_nested:
-                    [to_keyvalue_pairs(item, ancestors) for item in source]
-                else:
-                    [to_keyvalue_pairs(item, ancestors + [str(index)]) for index, item in enumerate(source)]
-            else:
-                header = header_delimeter.join(ancestors)
-                if header not in self.csv_headers:
-                    self.csv_headers.append(header)
-                try:
-                    out[header] = '{}{}{}'.format(out[header], self.opts.delimiter, source)
-                except:
-                    out[header] = source
-
-        with codecs.open(self.tmp_file, mode='a', encoding='utf-8') as tmp_file:
-            for hit in hit_list:
-                out = {field: hit[field] for field in META_FIELDS} if self.opts.meta_fields else {}
-                if '_source' in hit and len(hit['_source']) > 0:
-                    to_keyvalue_pairs(hit['_source'])
-                    tmp_file.write('{}\n'.format(json.dumps(out)))
-        tmp_file.close()
-
-    def write_to_csv(self):
-        if self.num_results > 0:
-            self.num_results = sum(1 for line in codecs.open(self.tmp_file, mode='r', encoding='utf-8'))
-            if self.num_results > 0:
-                output_file = codecs.open(self.opts.output_file, mode='a', encoding='utf-8')
-                csv_writer = csv.DictWriter(output_file, fieldnames=self.csv_headers)
-                csv_writer.writeheader()
-                timer = 0
-                widgets = ['Write to csv ',
-                           progressbar.Bar(left='[', marker='#', right=']'),
-                           progressbar.FormatLabel(' [%(value)i/%(max)i] ['),
-                           progressbar.Percentage(),
-                           progressbar.FormatLabel('] [%(elapsed)s] ['),
-                           progressbar.ETA(), '] [',
-                           progressbar.FileTransferSpeed(unit='lines'), ']'
-                           ]
-                bar = progressbar.ProgressBar(widgets=widgets, maxval=self.num_results).start()
-
-                for line in codecs.open(self.tmp_file, mode='r', encoding='utf-8'):
-                    timer += 1
-                    bar.update(timer)
-                    csv_writer.writerow(json.loads(line))
-                output_file.close()
-                bar.finish()
-            else:
-                print('There is no docs with selected field(s): {}.'.format(','.join(self.opts.fields)))
-            os.remove(self.tmp_file)
-
-    def clean_scroll_ids(self):
-        try:
-            self.es_conn.clear_scroll(body=','.join(self.scroll_ids))
-        except:
-            pass
+          
