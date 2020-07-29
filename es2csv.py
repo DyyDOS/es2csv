@@ -52,7 +52,7 @@ class Es2csv:
         self.scroll_time = '30m'
 
         self.csv_headers = list(META_FIELDS) if self.opts.meta_fields else []
-        self.tmp_file = '/home/dev/es2csv/test.json'
+        self.tmp_file = '/var/log/suricata/backupdbVCM.json'
 
     @retry(elasticsearch.exceptions.ConnectionError, tries=TIMES_TO_TRY)
     def create_connection(self):
