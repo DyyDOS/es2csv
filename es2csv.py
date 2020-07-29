@@ -148,7 +148,7 @@ class Es2csv:
                        progressbar.ETA(), '] [',
                        progressbar.FileTransferSpeed(unit='docs'), ']'
                        ]
-            bar = progressbar.ProgressBar(widgets=widgets, maxval=self.num_results).start()
+            #bar = progressbar.ProgressBar(widgets=widgets, maxval=self.num_results).start()
 
             while total_lines != self.num_results:
                 if res['_scroll_id'] not in self.scroll_ids:
@@ -157,14 +157,15 @@ class Es2csv:
                 if not res['hits']['hits']:
                     print('Scroll[{}] expired(multiple reads?). Saving loaded data.'.format(res['_scroll_id']))
                     break
+                i=0
                 for hit in res['hits']['hits']:
                     total_lines += 1
-                    bar.update(total_lines)
-                    hit_list.append(hit)
-                  
-                    hit =json.dumps(hit,ensure_ascii=False).encode('utf8')
-                    print(hit)
-                    output_file.write(hit)
+                    
+                    a = res['hits']['hits'][i]["_source"]
+                    i+=1
+                    a = json.dumps(a,ensure_ascii=False).encode('utf8')
+                   # print(hit._source)
+                    output_file.write(a)
                     output_file.write("\n")
                 res = next_scroll(res['_scroll_id'])
           
