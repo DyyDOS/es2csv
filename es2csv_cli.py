@@ -26,7 +26,7 @@ def main():
     p.add_argument('-i', '--index-prefixes', dest='index_prefixes', default=['logstash-*'], type=str, nargs='+', metavar='INDEX', help='Index name prefix(es). Default is %(default)s.')
     p.add_argument('-D', '--doc-types', dest='doc_types', type=str, nargs='+', metavar='DOC_TYPE', help='Document type(s).')
     p.add_argument('-t', '--tags', dest='tags', type=str, nargs='+', help='Query tags.')
-    p.add_argument('-o', '--output-file', dest='output_file', type=str,  default='/var/log/log.csv', metavar='FILE', help='CSV file location.')
+    p.add_argument('-o', '--output-file', dest='output_file', type=str, metavar='FILE', help='CSV file location.')
     p.add_argument('-f', '--fields', dest='fields', default=['_all'], type=str, nargs='+', help='List of selected fields in output. Default is %(default)s.')
     p.add_argument('-S', '--sort', dest='sort', default=[], type=str, nargs='+', metavar='FIELDS', help='List of <field>:<direction> pairs to sort on. Default is %(default)s.')
     p.add_argument('-d', '--delimiter', dest='delimiter', default=',', type=str, help='Delimiter to use in CSV file. Default is "%(default)s".')
