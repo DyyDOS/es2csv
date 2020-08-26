@@ -163,8 +163,8 @@ class Es2csv:
                     
                     a = res['hits']['hits'][i]["_source"]
                     i+=1
-                    a = json.dumps(a,ensure_ascii=False).encode('utf8')
-                   # print(hit._source)
+                    a = json.dumps(a).encode('utf8')
+                    #print(a)
                     output_file.write(a)
                     output_file.write("\n")
                 res = next_scroll(res['_scroll_id'])
